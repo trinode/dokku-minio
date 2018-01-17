@@ -599,8 +599,8 @@ service_unlink() {
 
   [[ -z ${LINK[*]} ]] && dokku_log_fail "Not linked to app $APP"
   config_unset "$APP" "${LINK[*]}"
-  config_unset "$APP" "${SERVICE_ALIAS}_ACCESS_KEY"
-  config_unset "$APP" "${SERVICE_ALIAS}_SECRET_KEY"
+  config_unset "$APP" "${SERVICE_NAME}_ACCESS_KEY"
+  config_unset "$APP" "${SERVICE_NAME}_SECRET_KEY"
 }
 
 service_version() {
