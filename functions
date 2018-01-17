@@ -116,8 +116,8 @@ service_start() {
   local QUIET="$2"
   local SERVICE_ROOT="$PLUGIN_DATA_ROOT/$SERVICE"
   local SERVICE_NAME="$(get_service_name "$SERVICE")"
-  local ACCESS_KEY="$(cat "$SERVICE_ROOT/ACCESS_KEY")"
-  local SECRET_KEY="$(cat "$SERVICE_ROOT/SECRET")"
+  local MINIO_ACCESS_KEY="$(cat "$SERVICE_ROOT/ACCESS_KEY")"
+  local MINIO_SECRET_KEY="$(cat "$SERVICE_ROOT/SECRET_KEY")"
   local ID=$(docker ps -f status=running | grep -e "$SERVICE_NAME$" | awk '{print $1}') || true
   if [[ -n $ID ]]; then
     [[ -z $QUIET ]] && dokku_log_warn "Service is already started"
