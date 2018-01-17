@@ -38,18 +38,18 @@ service_create() {
  
 
   ACCESS_KEY=$(openssl rand -hex 32)
-  if [[ -n "$ACCESS_KEY" ]]; then
-    ACCESS_KEY="$ACCESS_KEY"
-    dokku_log_warn "Specified ACCESS_KEY may not be as secure as the auto-generated password"
+  if [[ -n "$MINIO_ACCESS_KEY" ]]; then
+    ACCESS_KEY="$MINIO_ACCESS_KEY"
+    dokku_log_warn "Specified MINIO_ACCESS_KEY may not be as secure as the auto-generated password"
   fi
   echo "$ACCESS_KEY" > "$SERVICE_ROOT/ACCESS_KEY"
 
   chmod 640 "$SERVICE_ROOT/ACCESS_KEY"
 
   SECRET_KEY=$(openssl rand -hex 32)
-  if [[ -n "$SECRET_KEY" ]]; then
-    SECRET_KEY="$SECRET_KEY"
-    dokku_log_warn "Specified SECRET_KEY may not be as secure as the auto-generated password"
+  if [[ -n "$MINIO_SECRET_KEY" ]]; then
+    SECRET_KEY="$MINIO_SECRET_KEY"
+    dokku_log_warn "Specified MINIO_SECRET_KEY may not be as secure as the auto-generated password"
   fi
   echo "$SECRET_KEY" > "$SERVICE_ROOT/SECRET_KEY"
 
@@ -64,8 +64,8 @@ service_create() {
   else
     echo "" > "$SERVICE_ROOT/ENV"
   fi
-  echo "MINIO_ACCESS_KEY=$ACCESS_KEY" > "$SERVICE_ROOT/ENV"
-  echo "MINIO_SECRET_KEY=$SECRET_KEY" > "$SERVICE_ROOT/ENV"
+  echo "MINIO_ACCESS_KEY=$ACCESS_KEY" >> "$SERVICE_ROOT/ENV"
+  echo "MINIO_SECRET_KEY=$SECRET_KEY" >> "$SERVICE_ROOT/ENV"
   service_create_container "$SERVICE"
 }
 
