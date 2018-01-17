@@ -64,6 +64,8 @@ service_create() {
   else
     echo "" > "$SERVICE_ROOT/ENV"
   fi
+  echo "MINIO_ACCESS_KEY=$ACCESS_KEY" > "$SERVICE_ROOT/ENV"
+  echo "MINIO_SECRET_KEY=$SECRET_KEY" > "$SERVICE_ROOT/ENV"
   service_create_container "$SERVICE"
 }
 
