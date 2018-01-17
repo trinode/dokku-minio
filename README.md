@@ -1,6 +1,6 @@
-# dokku redis (beta)  [![Build Status](https://img.shields.io/travis/dokku/dokku-redis.svg?branch=master "Build Status")](https://travis-ci.org/dokku/dokku-redis) [![IRC Network](https://img.shields.io/badge/irc-freenode-blue.svg "IRC Freenode")](https://webchat.freenode.net/?channels=dokku)
+# dokku minio (beta) 
 
-Official redis plugin for dokku. Currently defaults to installing [redis 3.2.8](https://hub.docker.com/_/redis/).
+Minio plugin for dokku. Currently defaults to installing [minio edge](https://hub.docker.com/minio/minio/).
 
 ## requirements
 
