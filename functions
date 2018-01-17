@@ -72,6 +72,9 @@ service_create_container() {
   local SERVICE_ROOT="$PLUGIN_DATA_ROOT/$SERVICE"
   local SERVICE_NAME="$(get_service_name "$SERVICE")"
 
+  local MINIO_ACCESS_KEY="$(cat "$SERVICE_ROOT/ACCESS_KEY")"
+  local MINIO_SECRET_KEY="$(cat "$SERVICE_ROOT/SECRET_KEY")"
+
   #ID=$(docker run --name "$SERVICE_NAME" -v "$SERVICE_ROOT/data:/data" -v "$SERVICE_ROOT/config:/usr/local/etc/redis" --env-file="$SERVICE_ROOT/ENV" -d --restart always --label dokku=service --label dokku.service=redis "$PLUGIN_IMAGE:$PLUGIN_IMAGE_VERSION" redis-server /usr/local/etc/redis/redis.conf --bind 0.0.0.0)
   
 ID=$(docker run --name "$SERVICE_NAME" -v "$SERVICE_ROOT/data:/data" -v "$SERVICE_ROOT/config:/usr/local/etc/redis" --env-file="$SERVICE_ROOT/ENV" -d --restart always --label dokku=service --label dokku.service=minio "$PLUGIN_IMAGE:$PLUGIN_IMAGE_VERSION" minio server /data)
