@@ -18,7 +18,7 @@ service_connect() {
   local SERVICE_TTY_OPTS
   has_tty && SERVICE_TTY_OPTS="-t"
 
-  docker exec -i $SERVICE_TTY_OPTS "$SERVICE_NAME" redis-cli -a "$PASSWORD"
+  docker exec -i $SERVICE_TTY_OPTS "$SERVICE_NAME" mc -a "$PASSWORD"
 }
 
 service_create() {
