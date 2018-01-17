@@ -11,7 +11,7 @@ Minio plugin for dokku. Currently defaults to installing [minio edge](https://hu
 
 ```shell
 # on 0.4.x+
-sudo dokku plugin:install https://github.com/trinode/trinode-minio.git minio
+sudo dokku plugin:install https://github.com/trinode/dokku-minio.git minio
 ```
 
 
