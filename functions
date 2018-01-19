@@ -10,16 +10,6 @@ fi
 
 # non-generic functions
 
-service_connect() {
-  local SERVICE="$1"
-  local SERVICE_ROOT="$PLUGIN_DATA_ROOT/$SERVICE"
-  local SERVICE_NAME="$(get_service_name "$SERVICE")"
-  local PASSWORD="$(service_password "$SERVICE")"
-  local SERVICE_TTY_OPTS
-  has_tty && SERVICE_TTY_OPTS="-t"
-
-  docker exec -i $SERVICE_TTY_OPTS "$SERVICE_NAME" mc -a "$PASSWORD"
-}
 
 service_create() {
   local SERVICE="$1"
@@ -79,7 +69,7 @@ service_create_container() {
 
   #ID=$(docker run --name "$SERVICE_NAME" -v "$SERVICE_ROOT/data:/data" -v "$SERVICE_ROOT/config:/usr/local/etc/redis" --env-file="$SERVICE_ROOT/ENV" -d --restart always --label dokku=service --label dokku.service=redis "$PLUGIN_IMAGE:$PLUGIN_IMAGE_VERSION" redis-server /usr/local/etc/redis/redis.conf --bind 0.0.0.0)
   
-ID=$(docker run --name "$SERVICE_NAME" -v "$SERVICE_ROOT/data:/data" -v "$SERVICE_ROOT/config:/usr/local/etc/redis" --env-file="$SERVICE_ROOT/ENV" -d --restart always --label dokku=service --label dokku.service=minio "$PLUGIN_IMAGE:$PLUGIN_IMAGE_VERSION" minio server /data)
+ID=$(docker run --name "$SERVICE_NAME" -v "$SERVICE_ROOT/data:/data" --env-file="$SERVICE_ROOT/ENV" -d --restart always --label dokku=service --label dokku.service=minio "$PLUGIN_IMAGE:$PLUGIN_IMAGE_VERSION" minio server /data)
 echo "$ID" > "$SERVICE_ROOT/ID"
 
   dokku_log_verbose_quiet "Waiting for container to be ready"
@@ -87,33 +77,6 @@ echo "$ID" > "$SERVICE_ROOT/ID"
 
   dokku_log_info2 "$PLUGIN_SERVICE container created: $SERVICE"
   service_info "$SERVICE"
-}
-
-service_export() {
-  local SERVICE="$1"
-  local SERVICE_ROOT="$PLUGIN_DATA_ROOT/$SERVICE"
-  local SERVICE_NAME="$(get_service_name "$SERVICE")"
-  local PASSWORD="$(service_password "$SERVICE")"
-
-  [[ -n $SSH_TTY ]] && stty -opost
-  docker exec "$SERVICE_NAME" bash -c "echo SAVE | redis-cli -a ${PASSWORD}" > /dev/null 2>&1
-  docker exec "$SERVICE_NAME" cat /data/dump.rdb
-  status=$?
-  [[ -n $SSH_TTY ]] && stty opost
-  exit $status
-}
-
-service_import() {
-  local SERVICE="$1"
-  SERVICE_ROOT="$PLUGIN_DATA_ROOT/$SERVICE"
-  SERVICE_NAME="$(get_service_name "$SERVICE")"
-
-  if [[ -t 0 ]]; then
-    dokku_log_fail "No data provided on stdin."
-  fi
-  dokku "$PLUGIN_COMMAND_PREFIX:stop" "$SERVICE" > /dev/null 2>&1
-  docker run --rm -i -v "$SERVICE_ROOT/data:/data" "$PLUGIN_IMAGE:$PLUGIN_IMAGE_VERSION" bash -c "cat > /data/dump.rdb && chown redis: /data/dump.rdb"
-  dokku "$PLUGIN_COMMAND_PREFIX:start" "$SERVICE" > /dev/null 2>&1
 }
 
 service_start() {
