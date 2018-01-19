@@ -79,6 +79,33 @@ echo "$ID" > "$SERVICE_ROOT/ID"
   service_info "$SERVICE"
 }
 
+service_export() {
+  local SERVICE="$1"
+  local SERVICE_ROOT="$PLUGIN_DATA_ROOT/$SERVICE"
+  local SERVICE_NAME="$(get_service_name "$SERVICE")"
+  local PASSWORD="$(service_password "$SERVICE")"
+
+  [[ -n $SSH_TTY ]] && stty -opost
+  docker exec "$SERVICE_NAME" bash -c "echo SAVE | redis-cli -a ${PASSWORD}" > /dev/null 2>&1
+  docker exec "$SERVICE_NAME" cat /data/dump.rdb
+  status=$?
+  [[ -n $SSH_TTY ]] && stty opost
+  exit $status
+}
+
+service_import() {
+  local SERVICE="$1"
+  SERVICE_ROOT="$PLUGIN_DATA_ROOT/$SERVICE"
+  SERVICE_NAME="$(get_service_name "$SERVICE")"
+
+  if [[ -t 0 ]]; then
+    dokku_log_fail "No data provided on stdin."
+  fi
+  dokku "$PLUGIN_COMMAND_PREFIX:stop" "$SERVICE" > /dev/null 2>&1
+  docker run --rm -i -v "$SERVICE_ROOT/data:/data" "$PLUGIN_IMAGE:$PLUGIN_IMAGE_VERSION" bash -c "cat > /data/dump.rdb && chown redis: /data/dump.rdb"
+  dokku "$PLUGIN_COMMAND_PREFIX:start" "$SERVICE" > /dev/null 2>&1
+}
+
 service_start() {
   local SERVICE="$1"
   local QUIET="$2"

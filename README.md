@@ -21,6 +21,8 @@ sudo dokku plugin:install https://github.com/trinode/dokku-minio.git minio
 ```
 minio:create <name>            Create a minio service with environment variables
 minio:destroy <name>           Delete the service, delete the data and stop its container if there are no links left (requires manual clean up of data)
+minio:link <name> <app>        Links the service to an app and sets environment variables
+minio:unlink <name> <app>      Unlinks the service from an app and unsets environment variables
 
 ```
 
@@ -36,7 +38,7 @@ dokku minio:create lolipop
 # it *must* be compatible with the
 #  minio/minio image
 export MINIO_IMAGE="minio/minio"
-export MINIO_IMAGE_VERSION="edge"
+export MINIO_IMAGE_VERSION="latest"
 dokku minio:create lolipop
 
 # you can also specify custom environment

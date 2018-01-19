@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 export MINIO_IMAGE=${MINIO_IMAGE:="minio/minio"}
-export MINIO_IMAGE_VERSION=${MINIO_IMAGE_VERSION:="edge"}
+export MINIO_IMAGE_VERSION=${MINIO_IMAGE_VERSION:="latest"}
 export MINIO_ROOT=${MINIO_ROOT:="/var/lib/dokku/services/minio"}
 
 export PLUGIN_COMMAND_PREFIX="minio"
