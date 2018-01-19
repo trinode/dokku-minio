@@ -320,7 +320,18 @@ service_link() {
   else
     dokku docker-options:add "$APP" build,deploy,run "--link $SERVICE_NAME:$SERVICE_ALIAS"
   fi
+
+  local MINIO_ACCESS_KEY="$(cat "$SERVICE_ROOT/ACCESS_KEY")"
+  local MINIO_SECRET_KEY="$(cat "$SERVICE_ROOT/SECRET_KEY")"
+  config_set "$APP" "${ALIAS}_ACCESS_KEY=$MINIO_ACCESS_KEY"
+  config_set "$APP" "${ALIAS}_SECRET_KEY=$MINIO_SECRET_KEY"
+
   config_set "$APP" "${ALIAS}_URL=$SERVICE_URL"
+
+
+
+
+
 }
 
 service_linked_apps() {
@@ -588,6 +599,8 @@ service_unlink() {
 
   [[ -z ${LINK[*]} ]] && dokku_log_fail "Not linked to app $APP"
   config_unset "$APP" "${LINK[*]}"
+  config_unset "$APP" "MINIO_ACCESS_KEY"
+  config_unset "$APP" "MINIO_SECRET_KEY"
 }
 
 service_version() {

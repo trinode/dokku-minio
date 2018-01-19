@@ -18,7 +18,7 @@ service_connect() {
   local SERVICE_TTY_OPTS
   has_tty && SERVICE_TTY_OPTS="-t"
 
-  docker exec -i $SERVICE_TTY_OPTS "$SERVICE_NAME" redis-cli -a "$PASSWORD"
+  docker exec -i $SERVICE_TTY_OPTS "$SERVICE_NAME" mc -a "$PASSWORD"
 }
 
 service_create() {
@@ -35,16 +35,27 @@ service_create() {
 
   mkdir -p "$SERVICE_ROOT" || dokku_log_fail "Unable to create service directory"
   mkdir -p "$SERVICE_ROOT/data" || dokku_log_fail "Unable to create service data directory"
-  mkdir -p "$SERVICE_ROOT/config" || dokku_log_fail "Unable to create service config directory"
-  curl -sSL "https://raw.githubusercontent.com/antirez/redis/${PLUGIN_IMAGE_VERSION:0:3}/redis.conf" > "$SERVICE_ROOT/config/redis.conf" || dokku_log_fail "Unable to download the default redis.conf to the config directory"
-  PASSWORD=$(openssl rand -hex 32)
-  if [[ -n "$SERVICE_PASSWORD" ]]; then
-    PASSWORD="$SERVICE_PASSWORD"
-    dokku_log_warn "Specified password may not be as secure as the auto-generated password"
+ 
+
+  ACCESS_KEY=$(openssl rand -hex 32)
+  if [[ -n "$MINIO_ACCESS_KEY" ]]; then
+    ACCESS_KEY="$MINIO_ACCESS_KEY"
+    dokku_log_warn "Specified MINIO_ACCESS_KEY may not be as secure as the auto-generated password"
   fi
-  echo "$PASSWORD" > "$SERVICE_ROOT/PASSWORD"
-  chmod 640 "$SERVICE_ROOT/PASSWORD"
-  sed -i.bak "s/# requirepass.*/requirepass ${PASSWORD}/" "$SERVICE_ROOT/config/redis.conf" && rm "$SERVICE_ROOT/config/redis.conf.bak"
+  echo "$ACCESS_KEY" > "$SERVICE_ROOT/ACCESS_KEY"
+
+  chmod 640 "$SERVICE_ROOT/ACCESS_KEY"
+
+  SECRET_KEY=$(openssl rand -hex 32)
+  if [[ -n "$MINIO_SECRET_KEY" ]]; then
+    SECRET_KEY="$MINIO_SECRET_KEY"
+    dokku_log_warn "Specified MINIO_SECRET_KEY may not be as secure as the auto-generated password"
+  fi
+  echo "$SECRET_KEY" > "$SERVICE_ROOT/SECRET_KEY"
+
+  chmod 640 "$SERVICE_ROOT/SECRET_KEY"
+
+
   touch "$LINKS_FILE"
 
   [[ -n "$SERVICE_CUSTOM_ENV" ]] && REDIS_CUSTOM_ENV="$SERVICE_CUSTOM_ENV"
@@ -53,6 +64,8 @@ service_create() {
   else
     echo "" > "$SERVICE_ROOT/ENV"
   fi
+  echo "MINIO_ACCESS_KEY=$ACCESS_KEY" >> "$SERVICE_ROOT/ENV"
+  echo "MINIO_SECRET_KEY=$SECRET_KEY" >> "$SERVICE_ROOT/ENV"
   service_create_container "$SERVICE"
 }
 
@@ -61,8 +74,13 @@ service_create_container() {
   local SERVICE_ROOT="$PLUGIN_DATA_ROOT/$SERVICE"
   local SERVICE_NAME="$(get_service_name "$SERVICE")"
 
-  ID=$(docker run --name "$SERVICE_NAME" -v "$SERVICE_ROOT/data:/data" -v "$SERVICE_ROOT/config:/usr/local/etc/redis" --env-file="$SERVICE_ROOT/ENV" -d --restart always --label dokku=service --label dokku.service=redis "$PLUGIN_IMAGE:$PLUGIN_IMAGE_VERSION" redis-server /usr/local/etc/redis/redis.conf --bind 0.0.0.0)
-  echo "$ID" > "$SERVICE_ROOT/ID"
+  local MINIO_ACCESS_KEY="$(cat "$SERVICE_ROOT/ACCESS_KEY")"
+  local MINIO_SECRET_KEY="$(cat "$SERVICE_ROOT/SECRET_KEY")"
+
+  #ID=$(docker run --name "$SERVICE_NAME" -v "$SERVICE_ROOT/data:/data" -v "$SERVICE_ROOT/config:/usr/local/etc/redis" --env-file="$SERVICE_ROOT/ENV" -d --restart always --label dokku=service --label dokku.service=redis "$PLUGIN_IMAGE:$PLUGIN_IMAGE_VERSION" redis-server /usr/local/etc/redis/redis.conf --bind 0.0.0.0)
+  
+ID=$(docker run --name "$SERVICE_NAME" -v "$SERVICE_ROOT/data:/data" -v "$SERVICE_ROOT/config:/usr/local/etc/redis" --env-file="$SERVICE_ROOT/ENV" -d --restart always --label dokku=service --label dokku.service=minio "$PLUGIN_IMAGE:$PLUGIN_IMAGE_VERSION" minio server /data)
+echo "$ID" > "$SERVICE_ROOT/ID"
 
   dokku_log_verbose_quiet "Waiting for container to be ready"
   docker run --rm --link "$SERVICE_NAME:$PLUGIN_COMMAND_PREFIX" dokkupaas/wait:0.2 -p "$PLUGIN_DATASTORE_WAIT_PORT" > /dev/null
@@ -103,6 +121,8 @@ service_start() {
   local QUIET="$2"
   local SERVICE_ROOT="$PLUGIN_DATA_ROOT/$SERVICE"
   local SERVICE_NAME="$(get_service_name "$SERVICE")"
+  local MINIO_ACCESS_KEY="$(cat "$SERVICE_ROOT/ACCESS_KEY")"
+  local MINIO_SECRET_KEY="$(cat "$SERVICE_ROOT/SECRET_KEY")"
   local ID=$(docker ps -f status=running | grep -e "$SERVICE_NAME$" | awk '{print $1}') || true
   if [[ -n $ID ]]; then
     [[ -z $QUIET ]] && dokku_log_warn "Service is already started"
@@ -135,5 +155,5 @@ service_url() {
   local SERVICE="$1"
   local PASSWORD="$(service_password "$SERVICE")"
   local SERVICE_ALIAS="$(service_alias "$SERVICE")"
-  echo "$PLUGIN_SCHEME://$SERVICE:$PASSWORD@$SERVICE_ALIAS:${PLUGIN_DATASTORE_PORTS[0]}"
+  echo "$PLUGIN_SCHEME://$SERVICE_ALIAS:${PLUGIN_DATASTORE_PORTS[0]}"
 }
