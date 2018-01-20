@@ -117,7 +117,7 @@ service_enter() {
   local EXEC_CMD=""
   has_tty && local DOKKU_RUN_OPTS+=" -i -t"
   # shellcheck disable=SC2086
-  docker exec $DOKKU_RUN_OPTS $ID $EXEC_CMD "${@:-/bin/bash}"
+  docker exec $DOKKU_RUN_OPTS $ID $EXEC_CMD "${@:-/bin/busybox}"
 }
 
 service_exposed_ports() {
@@ -209,10 +209,6 @@ service_link() {
   config_set --no-restart "$APP" "${ALIAS}_SECRET_KEY=$MINIO_SECRET_KEY"
 
   config_set "$APP" "${ALIAS}_URL=$SERVICE_URL"
-
-
-
-
 
 }
 
@@ -309,83 +305,6 @@ service_parse_args() {
     esac
   done
   shift "$(( OPTIND - 1 ))" # remove options from positional parameters
-}
-
-service_port_expose() {
-  declare desc="Wrapper for exposing service ports"
-  declare SERVICE="$1"
-  service_start "$SERVICE" "true"
-  service_port_unpause "$SERVICE" "true" "${@:2}"
-}
-
-service_port_pause() {
-  declare desc="Pauses service exposure"
-  declare SERVICE="$1" LOG_FAIL="$2"
-  local SERVICE_ROOT="$PLUGIN_DATA_ROOT/$SERVICE"
-  local EXPOSED_NAME="$(get_service_name "$SERVICE").ambassador"
-  local PORT_FILE="$SERVICE_ROOT/PORT"
-
-  if [[ "$LOG_FAIL" == "true" ]]; then
-    [[ ! -f "$PORT_FILE" ]] && dokku_log_fail "Service not exposed"
-  else
-    [[ ! -f "$PORT_FILE" ]] && return 0
-  fi
-
-  local GREP_NAME="^/${EXPOSED_NAME}$"
-  local CONTAINER_NAME="$(docker ps -f name="$GREP_NAME" --format "{{.Names}}")"
-  if [[ -z "$CONTAINER_NAME" ]]; then
-    if [[ "$LOG_FAIL" == "true" ]]; then
-      dokku_log_info1 "Service $SERVICE unexposed"
-    fi
-
-    return
-  fi
-
-  docker stop "$EXPOSED_NAME" > /dev/null 2>&1 || true
-  docker rm "$EXPOSED_NAME" > /dev/null 2>&1 || true
-  if [[ "$LOG_FAIL" == "true" ]]; then
-    dokku_log_info1 "Service $SERVICE unexposed"
-  fi
-}
-
-service_port_unexpose() {
-  declare desc="Wrapper for pausing exposed service ports"
-  declare SERVICE="$1"
-  local SERVICE_ROOT="$PLUGIN_DATA_ROOT/$SERVICE"
-  local PORT_FILE="$SERVICE_ROOT/PORT"
-  service_port_pause "$SERVICE" "true"
-  rm -rf "$PORT_FILE"
-}
-
-service_port_unpause() {
-  declare desc="Starts service exposure"
-  declare SERVICE="$1" LOG_FAIL="$2"
-  local SERVICE_ROOT="$PLUGIN_DATA_ROOT/$SERVICE"
-  local SERVICE_NAME="$(get_service_name "$SERVICE")"
-  local EXPOSED_NAME="${SERVICE_NAME}.ambassador"
-  local PORT_FILE="$SERVICE_ROOT/PORT"
-  # shellcheck disable=SC2068
-  local PORTS=(${@:3})
-  # shellcheck disable=SC2068
-  PORTS=(${PORTS[@]:-$(get_random_ports ${#PLUGIN_DATASTORE_PORTS[@]})})
-  local ID=$(cat "$SERVICE_ROOT/ID")
-
-  [[ "${#PORTS[@]}" != "${#PLUGIN_DATASTORE_PORTS[@]}" ]] && dokku_log_fail "${#PLUGIN_DATASTORE_PORTS[@]} ports to be exposed need to be provided in the following order: ${PLUGIN_DATASTORE_PORTS[*]}"
-
-  if [[ "$LOG_FAIL" == "true" ]]; then
-    [[ -f "$PORT_FILE" ]] && PORTS=($(cat "$PORT_FILE")) && dokku_log_fail "Service $SERVICE already exposed on port(s) ${PORTS[*]}"
-  else
-    [[ ! -f "$PORT_FILE" ]] && return 0
-    PORTS=($(cat "$PORT_FILE"))
-  fi
-
-  echo "${PORTS[@]}" > "$PORT_FILE"
-
-  # shellcheck disable=SC2046
-  docker run -d --link "$SERVICE_NAME:$PLUGIN_COMMAND_PREFIX" --name "$EXPOSED_NAME" $(docker_ports_options "${PORTS[@]}") --restart always --label dokku=ambassador --label "dokku.ambassador=$PLUGIN_COMMAND_PREFIX" svendowideit/ambassador > /dev/null
-  if [[ "$LOG_FAIL" == "true" ]]; then
-    dokku_log_info1 "Service $SERVICE exposed on port(s) [container->host]: $(service_exposed_ports "$SERVICE")"
-  fi
 }
 
 service_promote() {
