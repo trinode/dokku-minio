@@ -1,4 +1,4 @@
 [plugin]
-description = "dokku redis service plugin"
+description = "dokku minio service plugin"
 version = "1.0.0"
 [plugin.config]
